@@ -1,4 +1,5 @@
 import urllib
+import os
 from typing import Optional, Any, Tuple, Dict, List, Iterator
 
 from shillelagh.adapters.base import Adapter
@@ -142,6 +143,12 @@ class RestAdapter(Adapter):
         self.headers = headers_dict
         self.body = body
         self._session = get_session()
+
+        auth_header_key, auth_header_value = os.environ.get('CL_AUTH_TOKEN').split("=")
+        whitelisted_domain =  os.environ.get('CL_WHITE_LISTED_DOMAINS', '').split(',')
+        if base_url in whitelisted_domain:
+            self.headers.update({auth_header_key: auth_header_value})
+
         if self.is_https is None or self.is_https:
             prefix = "https://"
         else:
