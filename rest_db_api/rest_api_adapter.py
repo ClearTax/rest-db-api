@@ -102,6 +102,7 @@ class HttpHeader:
 
         return {key: ",".join(value) for key, value in header_grouping.items()}
 
+
 class RestAdapter(Adapter):
     safe = True
     supports_limit = True
@@ -221,8 +222,8 @@ class RestAdapter(Adapter):
             _logger.info(f"response received; uri : {self.url}; query_params : {self.query_params};"
                          f" headers : {self.headers}; json : {self.body}")
         else:
-            _logger.info(f"failed to fetch response; uri : {self.url}; query_params : {self.query_params};"
-                         f" headers : {self.headers}; json : {self.body}")
+            _logger.error(f"failed to fetch response; uri : {self.url}; query_params : {self.query_params};"
+                          f" headers : {self.headers}; json : {self.body}")
 
         payload = response.json()
         parser = JSONPath(self.fragment)
