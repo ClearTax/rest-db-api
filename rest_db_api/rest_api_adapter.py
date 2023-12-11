@@ -152,7 +152,6 @@ class RestAdapter(Adapter):
         except Exception as exception:
             _logger.error(f"Exception occurred while parsing; uri : {uri}; operation : {operation}; "
                           f"exception : {exception}")
-            raise NotImplementedError("SOMETING_HAPPENED")
 
         return uri, operation
 
