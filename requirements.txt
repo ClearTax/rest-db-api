@@ -20,7 +20,7 @@ exceptiongroup==1.0.4
 filelock==3.7.1
 freezegun==1.2.1
 google-auth==2.9.1
-greenlet==1.1.2
+greenlet==3.0.2
 html5lib==1.1
 identify==2.5.2
 idna==3.3
@@ -57,16 +57,16 @@ pytest-mock==3.8.2
 python-dateutil==2.8.2
 pytz==2022.1
 PyYAML==6.0
-requests==2.28.1
-requests-cache==0.7.1
-requests-mock==1.9.3
-responses==0.22.0
+requests==2.31.0
+requests-cache==1.1.1
+requests-mock==1.11.0
+responses==0.24.1
 rsa==4.9
 s3transfer==0.6.0
-shillelagh==1.2.0
 six==1.16.0
 soupsieve==2.3.2.post1
 SQLAlchemy==1.4.39
+sqlglot==20.1.0
 tabulate==0.8.9
 toml==0.10.2
 tomli==2.0.1
@@ -80,3 +80,6 @@ wcwidth==0.2.5
 webencodings==0.5.1
 wrapt==1.14.1
 yarl==1.8.1
+
+# ClearTax Shillelagh clone
+git+https://github.com/ClearTax/shillelagh.git
