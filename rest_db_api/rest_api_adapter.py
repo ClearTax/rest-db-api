@@ -92,6 +92,15 @@ class HttpHeader:
         value = header_param[first_colon_index + 1:]
         return HttpHeader(key, value)
 
+    @classmethod
+    def load_multi_valued_headers(cls, headers: List['HttpHeader']) -> Dict[str, str]:
+        header_grouping: Dict[str, List[str]] = {}
+        for header in headers:
+            if header.get_key() not in header_grouping:
+                header_grouping[header.get_key()] = []
+            header_grouping[header.get_key()].append(header.get_value())
+
+        return {key: ",".join(value) for key, value in header_grouping.items()}
 
 class RestAdapter(Adapter):
     safe = True
@@ -114,25 +123,20 @@ class RestAdapter(Adapter):
         params_and_headers: Dict[str, List[str]] = urllib.parse.parse_qs(parsed.query)
         fragment = urllib.parse.unquote(parsed.fragment) or "$[*]"
 
-        _logger.info(f"parse : {parsed}; params_and_headers : {params_and_headers}; fragment : {fragment}")
-
         headers: List[HttpHeader] = []
         query_params: Dict = {}
         body: Dict = {}
         for key, val in params_and_headers.items():
             if key.startswith("header"):
-                header: HttpHeader = HttpHeader.parse_header_params(val[0])
-                headers.append(header)
-            if key == "body":
+                for header in val:
+                    parsed_header: HttpHeader = HttpHeader.parse_header_params(header)
+                    headers.append(parsed_header)
+            elif key == "body":
                 body = get_decoded_json_body(val[0])
-
             else:
                 query_params[key] = val
 
-        headers_dict = HttpHeader.load_headers(headers)
-
-        _logger.info(f"path : {path}; query_params : {query_params} headers_dict : {headers_dict};"
-                     f" fragment : {fragment}; body : {body}")
+        headers_dict = HttpHeader.load_multi_valued_headers(headers)
 
         return path, query_params, headers_dict, fragment, body
 
