@@ -1,7 +1,11 @@
-import urllib
+import json
+import logging
 import os
+import urllib
 from typing import Optional, Any, Tuple, Dict, List, Iterator
 
+import requests_cache
+from jsonpath import JSONPath
 from shillelagh.adapters.base import Adapter
 from shillelagh.fields import (
     Boolean,
@@ -9,12 +13,10 @@ from shillelagh.fields import (
     Filter,
 )
 from shillelagh.filters import Equal
-from shillelagh.typing import RequestedOrder, Row
 from shillelagh.lib import SimpleCostModel, analyze, flatten
-import requests_cache
-from jsonpath import JSONPath
-import logging
-import json
+from shillelagh.typing import RequestedOrder, Row
+
+from rest_db_api import utils
 
 SUPPORTED_PROTOCOLS = {"http", "https"}
 AVERAGE_NUMBER_OF_ROWS = 100000
@@ -90,6 +92,16 @@ class HttpHeader:
         value = header_param[first_colon_index + 1:]
         return HttpHeader(key, value)
 
+    @classmethod
+    def load_multi_valued_headers(cls, headers: List['HttpHeader']) -> Dict[str, str]:
+        header_grouping: Dict[str, List[str]] = {}
+        for header in headers:
+            if header.get_key() not in header_grouping:
+                header_grouping[header.get_key()] = []
+            header_grouping[header.get_key()].append(header.get_value())
+
+        return {key: ",".join(value) for key, value in header_grouping.items()}
+
 
 class RestAdapter(Adapter):
     safe = True
@@ -117,16 +129,32 @@ class RestAdapter(Adapter):
         body: Dict = {}
         for key, val in params_and_headers.items():
             if key.startswith("header"):
-                header: HttpHeader = HttpHeader.parse_header_params(val[0])
-                headers.append(header)
-            if key == "body":
+                for header in val:
+                    parsed_header: HttpHeader = HttpHeader.parse_header_params(header)
+                    headers.append(parsed_header)
+            elif key == "body":
                 body = get_decoded_json_body(val[0])
-
             else:
                 query_params[key] = val
 
-        headers_dict = HttpHeader.load_headers(headers)
+        headers_dict = HttpHeader.load_multi_valued_headers(headers)
+
         return path, query_params, headers_dict, fragment, body
+
+    @staticmethod
+    def supports_query_manipulation(operation: str) -> bool:
+        return True
+
+    @staticmethod
+    def parse_operation_and_uri(uri: str, operation: str) -> Tuple[str, str]:
+        try:
+            _logger.info(f"parse_operation_and_uri; uri : {uri}; operation : {operation};")
+            uri, operation = utils.parse_operation_and_uri(uri, operation)
+        except Exception as exception:
+            _logger.error(f"Exception occurred while parsing; uri : {uri}; operation : {operation}; "
+                          f"exception : {exception}")
+
+        return uri, operation
 
     def __init__(self,
                  path: str,
@@ -135,7 +163,8 @@ class RestAdapter(Adapter):
                  fragment: str,
                  body: Dict[Any, Any],
                  base_url: str = None,
-                 is_https: Boolean = True, **kwargs: Any):
+                 is_https: Boolean = True,
+                 **kwargs: Any):
         super().__init__()
         self.query_params = query_params
         self.fragment = fragment
@@ -144,8 +173,8 @@ class RestAdapter(Adapter):
         self.body = body
         self._session = get_session()
 
-        auth_header_key, auth_header_value = os.environ.get('CL_AUTH_TOKEN').split("=")
-        whitelisted_domain =  os.environ.get('CL_WHITE_LISTED_DOMAINS', '').split(',')
+        auth_header_key, auth_header_value = os.environ.get('CL_AUTH_TOKEN', '=').split("=")
+        whitelisted_domain = os.environ.get('CL_WHITE_LISTED_DOMAINS', '').split(',')
         if base_url in whitelisted_domain:
             self.headers.update({auth_header_key: auth_header_value})
 
@@ -188,6 +217,14 @@ class RestAdapter(Adapter):
             response = self._session.post(self.url, params=self.query_params, headers=self.headers, json=self.body)
         else:
             response = self._session.get(self.url, params=self.query_params, headers=self.headers)
+
+        if response and response.ok:
+            _logger.info(f"response received; uri : {self.url}; query_params : {self.query_params};"
+                         f" headers : {self.headers}; json : {self.body}")
+        else:
+            _logger.error(f"failed to fetch response; uri : {self.url}; query_params : {self.query_params};"
+                          f" headers : {self.headers}; json : {self.body}")
+
         payload = response.json()
         parser = JSONPath(self.fragment)
         data = parser.parse(payload)
