@@ -1,9 +1,11 @@
+import logging
 from typing import Dict, Any, Tuple, List, Union
 import json
 import urllib
 from urllib.parse import urlencode
 import sqlglot
 
+_logger = logging.getLogger(__name__)
 
 def get_virtual_table(endpoint: str,
                       params: Dict[str, Any] = None,
@@ -125,7 +127,7 @@ def parse_operation_and_uri(uri: str, operation: str) -> Tuple[str, str]:
                 operation_elems.pop()
             if len(operation_elems) > 0 and operation_elems[-1] != 'WHERE':
                 operation_elems.append(value)
-        elif value == 'ORDER' or value == 'LIMIT':
+        elif value == 'ORDER' or value == 'LIMIT' or value == ")":
             while len(operation_elems) > 0 and (operation_elems[-1] == 'WHERE' or operation_elems[-1] == 'AND'):
                 operation_elems.pop()
             operation_elems.append(value)
@@ -138,4 +140,4 @@ def parse_operation_and_uri(uri: str, operation: str) -> Tuple[str, str]:
     updated_operation = " ".join(operation_elems)
     updated_operation = updated_operation.replace(uri, updated_uri)
 
-    return updated_uri.strip(), updated_operation.strip()
+    return updated_uri.strip(), sqlglot.parse_one(updated_operation.strip()).sql()
