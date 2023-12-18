@@ -183,6 +183,10 @@ class RestAdapter(Adapter):
         else:
             prefix = "http://"
 
+        if path and not path.startswith("/"):
+            _logger.info("adding `/` to path")
+            path = "/" + path
+
         self.url = prefix + base_url + path
         self._set_columns()
 
