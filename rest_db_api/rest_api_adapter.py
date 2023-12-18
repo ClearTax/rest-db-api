@@ -191,7 +191,7 @@ class RestAdapter(Adapter):
         self._set_columns()
 
     def _set_columns(self) -> None:
-        print("custom rest adapter is being used :)")
+        print("custom rest adapter is being used :)", self.url)
         rows = list(self.get_data({}, []))
         column_names = list(rows[0].keys()) if rows else []
         _, order, types = analyze(iter(rows))
