@@ -191,7 +191,7 @@ class RestAdapter(Adapter):
         self._set_columns()
 
     def _set_columns(self) -> None:
-        print("custom rest adapter is being used :)", self.url)
+        _logger.info(f"custom rest adapter is being used; uri : {self.url}")
         rows = list(self.get_data({}, []))
         column_names = list(rows[0].keys()) if rows else []
         _, order, types = analyze(iter(rows))
@@ -227,7 +227,7 @@ class RestAdapter(Adapter):
                          f" headers : {self.headers}; json : {self.body}")
         else:
             _logger.error(f"failed to fetch response; uri : {self.url}; query_params : {self.query_params};"
-                          f" headers : {self.headers}; json : {self.body}")
+                          f" headers : {self.headers}; json : {self.body}; response : {response}")
 
         payload = response.json()
         parser = JSONPath(self.fragment)
