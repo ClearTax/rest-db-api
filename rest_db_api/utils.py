@@ -1,11 +1,28 @@
-import logging
-from typing import Dict, Any, Tuple, List, Union
 import json
+import logging
+import re
 import urllib
+from typing import Dict, Any, Tuple, List, Union
 from urllib.parse import urlencode
+
 import sqlglot
 
 _logger = logging.getLogger(__name__)
+
+white_listed_header_params: dict[str, str] = {
+    "org_id": "x-cleartax-orgunit",
+    "node_ids": "x-clear-node-id",
+}
+
+white_listed_query_params: dict[str, str] = {
+
+}
+
+invalid_sql_clause_post_parsing: list[str, str] = [
+    r'\bAND\s*\(\s*\)',
+    r'\bWHERE\s*\(\s*\)',
+]
+
 
 def get_virtual_table(endpoint: str,
                       params: Dict[str, Any] = None,
@@ -67,6 +84,13 @@ def get_custom_body_param(is_param_added: bool = False, body: Dict[Any, Any] = N
     return custom_body_param
 
 
+def remove_invalid_clause(operation: str) -> str:
+    for invalid_clause in invalid_sql_clause_post_parsing:
+        operation = re.sub(invalid_clause, '', operation)
+
+    return operation
+
+
 def append_to_uri(uri: str, name: str, value: str) -> str:
     if "?" not in uri:
         uri += "?"
@@ -104,6 +128,12 @@ def append_headers_and_query_params_to_uri(expression: Union[sqlglot.expressions
             in_expression: sqlglot.expressions.In = expression
             if is_where_clause:
                 param_name = in_expression.this.sql().strip('"')
+
+                if param_name in white_listed_header_params:
+                    param_name = "HEADER" + white_listed_header_params[param_name]
+                elif param_name in white_listed_query_params:
+                    param_name = "QUERY_PARAM" + white_listed_query_params[param_name]
+
                 if param_name.startswith("QUERY_PARAM") or param_name.startswith("HEADER"):
                     query_param_values = [value.sql() for value in in_expression.expressions]
                     for param_value in query_param_values:
@@ -111,7 +141,7 @@ def append_headers_and_query_params_to_uri(expression: Union[sqlglot.expressions
                     expression.pop()
         elif isinstance(expression, sqlglot.expressions.Expression):
             for key, value in expression.args.items():
-                uri = append_headers_and_query_params_to_uri(value, isinstance(expression, sqlglot.expressions.Where), uri)
+                uri = append_headers_and_query_params_to_uri(value, is_where_clause or isinstance(expression, sqlglot.expressions.Where), uri)
 
     return uri.strip()
 
@@ -137,7 +167,8 @@ def parse_operation_and_uri(uri: str, operation: str) -> Tuple[str, str]:
     while len(operation_elems) > 0 and (operation_elems[-1] == "WHERE" or operation_elems[-1] == 'AND'):
         operation_elems.pop()
 
-    updated_operation = " ".join(operation_elems)
+    updated_operation = remove_invalid_clause(" ".join(operation_elems))
+
     updated_operation = updated_operation.replace(uri, updated_uri)
 
     return updated_uri.strip(), sqlglot.parse_one(updated_operation.strip()).sql()
