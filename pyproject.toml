@@ -22,7 +22,8 @@ dependencies = [
     "SQLAlchemy<=1.4.39",
     "shillelagh",
     "requests-cache",
-    "jsonpath-python"
+    "jsonpath-python",
+    "sqlglot"
 ]
 
 [project.entry-points."shillelagh.adapter"]
