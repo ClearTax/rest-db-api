@@ -171,6 +171,65 @@ class TestQueryParsing:
         assert body == {}
 
     @staticmethod
+    def test_parse_operation_and_uri_5():
+        uri_1 = "REPORTS_LEDGER_SUMMARY"
+        operation_1 = """SELECT gstin AS gstin,
+           "gstinNodeId" AS "gstinNodeId",
+           date AS date,
+           "referenceNo" AS "referenceNo",
+           description AS description,
+           table_4_a_5_igst AS table_4_a_5_igst,
+           table_4_a_5_cgst AS table_4_a_5_cgst,
+           table_4_a_5_sgst AS table_4_a_5_sgst,
+           table_4_a_5_cess AS table_4_a_5_cess,
+           table_4_b_2_igst AS table_4_b_2_igst,
+           table_4_b_2_cgst AS table_4_b_2_cgst,
+           table_4_b_2_sgst AS table_4_b_2_sgst,
+           table_4_b_2_cess AS table_4_b_2_cess,
+           table_4_d_1_igst AS table_4_d_1_igst,
+           table_4_d_1_cgst AS table_4_d_1_cgst,
+           table_4_d_1_sgst AS table_4_d_1_sgst,
+           table_4_d_1_cess AS table_4_d_1_cess,
+           table_closing_igst AS table_closing_igst,
+           table_closing_cgst AS table_closing_cgst,
+           table_closing_sgst AS table_closing_sgst,
+           table_closing_cess AS table_closing_cess,
+           rowid AS rowid
+    FROM
+      (SELECT *
+       FROM "REPORTS_LEDGER_SUMMARY"
+       WHERE "QUERY_PARAMjob_id"="7227c292-2812-472f-bee3-9333195de314"
+       and org_id = "e1378c1f-35f5-494b-9903-fd851f238613") AS virtual_table
+
+    WHere (org_id in ("e1378c1f-35f5-494b-9903-fd851f238613")
+            and node_ids in ("5614e031-4bc7-4ebb-b90e-a3d4230223fc", "5e3fa661-2f00-4fcb-98ee-6739406bdfad"))
+    LIMIT 1000
+    OFFSET 0;"""
+
+        uri_response_1, operation_response_1 = rest_api_adapter.RestAdapter.parse_operation_and_uri(uri_1, operation_1)
+        assert uri_response_1 == 'REPORTS_LEDGER_SUMMARY?job_id=7227c292-2812-472f-bee3-9333195de314&header=x-cleartax-orgunit:e1378c1f-35f5-494b-9903-fd851f238613&header=x-cleartax-orgunit:e1378c1f-35f5-494b-9903-fd851f238613&header=x-clear-node-id:5614e031-4bc7-4ebb-b90e-a3d4230223fc&header=x-clear-node-id:5e3fa661-2f00-4fcb-98ee-6739406bdfad'
+        assert operation_response_1 == 'SELECT gstin AS gstin, "gstinNodeId" AS "gstinNodeId", date AS date, "referenceNo" AS "referenceNo", description AS description, table_4_a_5_igst AS table_4_a_5_igst, table_4_a_5_cgst AS table_4_a_5_cgst, table_4_a_5_sgst AS table_4_a_5_sgst, table_4_a_5_cess AS table_4_a_5_cess, table_4_b_2_igst AS table_4_b_2_igst, table_4_b_2_cgst AS table_4_b_2_cgst, table_4_b_2_sgst AS table_4_b_2_sgst, table_4_b_2_cess AS table_4_b_2_cess, table_4_d_1_igst AS table_4_d_1_igst, table_4_d_1_cgst AS table_4_d_1_cgst, table_4_d_1_sgst AS table_4_d_1_sgst, table_4_d_1_cess AS table_4_d_1_cess, table_closing_igst AS table_closing_igst, table_closing_cgst AS table_closing_cgst, table_closing_sgst AS table_closing_sgst, table_closing_cess AS table_closing_cess, rowid AS rowid FROM (SELECT * FROM "REPORTS_LEDGER_SUMMARY?job_id=7227c292-2812-472f-bee3-9333195de314&header=x-cleartax-orgunit:e1378c1f-35f5-494b-9903-fd851f238613&header=x-cleartax-orgunit:e1378c1f-35f5-494b-9903-fd851f238613&header=x-clear-node-id:5614e031-4bc7-4ebb-b90e-a3d4230223fc&header=x-clear-node-id:5e3fa661-2f00-4fcb-98ee-6739406bdfad") AS virtual_table LIMIT 1000 OFFSET 0'
+
+        uri_response_2, operation_response_2 = rest_api_adapter.RestAdapter.parse_operation_and_uri(uri_response_1,
+                                                                                                    operation_response_1)
+        assert uri_response_2 == uri_response_1
+        assert operation_response_2 == operation_response_1
+
+        path, query_params, headers_dict, fragment, body = rest_api_adapter.RestAdapter.parse_uri(uri_response_2)
+        assert path == "REPORTS_LEDGER_SUMMARY"
+        assert query_params == {
+            'job_id': [
+                '7227c292-2812-472f-bee3-9333195de314'
+            ]
+        }
+        assert headers_dict == {
+            'x-clear-node-id': '5614e031-4bc7-4ebb-b90e-a3d4230223fc,5e3fa661-2f00-4fcb-98ee-6739406bdfad',
+            'x-cleartax-orgunit': 'e1378c1f-35f5-494b-9903-fd851f238613',
+        }
+        assert fragment == '$[*]'
+        assert body == {}
+
+    @staticmethod
     def test_remove_redundant_clause():
         assert "WHERE (org_id = 1234)" == utils.remove_invalid_clause("WHERE (org_id = 1234)")
         assert "" == utils.remove_invalid_clause("WHERE ()")

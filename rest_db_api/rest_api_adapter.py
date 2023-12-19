@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import urllib
-from typing import Optional, Any, Tuple, Dict, List, Iterator
+from typing import Optional, Any, Tuple, Dict, List, Iterator, Set
 
 import requests_cache
 from jsonpath import JSONPath
@@ -94,13 +94,14 @@ class HttpHeader:
 
     @classmethod
     def load_multi_valued_headers(cls, headers: List['HttpHeader']) -> Dict[str, str]:
-        header_grouping: Dict[str, List[str]] = {}
+        header_grouping: Dict[str, Set[str]] = {}
         for header in headers:
-            if header.get_key() not in header_grouping:
-                header_grouping[header.get_key()] = []
-            header_grouping[header.get_key()].append(header.get_value())
+            if header and header.get_key() and header.get_value():
+                if header.get_key() not in header_grouping:
+                    header_grouping[header.get_key()]: Set[str] = set()
+                header_grouping[header.get_key()].add(header.get_value())
 
-        return {key: ",".join(value) for key, value in header_grouping.items()}
+        return {key: ",".join(sorted(value)) for key, value in header_grouping.items()}
 
 
 class RestAdapter(Adapter):

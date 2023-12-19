@@ -97,6 +97,11 @@ def append_to_uri(uri: str, name: str, value: str) -> str:
     elif not uri.endswith("&"):
         uri += "&"
 
+    if name in white_listed_header_params:
+        name = "HEADER" + white_listed_header_params[name]
+    elif name in white_listed_query_params:
+        name = "QUERY_PARAM" + white_listed_query_params[name]
+
     if name.startswith("QUERY_PARAM"):
         name = name.removeprefix("QUERY_PARAM").strip('"') + "="
     elif name.startswith("HEADER"):
@@ -120,7 +125,8 @@ def append_headers_and_query_params_to_uri(expression: Union[sqlglot.expressions
             eq_expression: sqlglot.expressions.EQ = expression
             if is_where_clause:
                 param_name = eq_expression.left.sql().strip('"')
-                if param_name.startswith("QUERY_PARAM") or param_name.startswith("HEADER"):
+                if (param_name.startswith("QUERY_PARAM") or param_name.startswith("HEADER")
+                        or param_name in white_listed_header_params or param_name in white_listed_query_params):
                     param_value = eq_expression.right.sql()
                     uri = append_to_uri(uri, param_name, param_value)
                     eq_expression.pop()
@@ -128,13 +134,8 @@ def append_headers_and_query_params_to_uri(expression: Union[sqlglot.expressions
             in_expression: sqlglot.expressions.In = expression
             if is_where_clause:
                 param_name = in_expression.this.sql().strip('"')
-
-                if param_name in white_listed_header_params:
-                    param_name = "HEADER" + white_listed_header_params[param_name]
-                elif param_name in white_listed_query_params:
-                    param_name = "QUERY_PARAM" + white_listed_query_params[param_name]
-
-                if param_name.startswith("QUERY_PARAM") or param_name.startswith("HEADER"):
+                if (param_name.startswith("QUERY_PARAM") or param_name.startswith("HEADER")
+                        or param_name in white_listed_header_params or param_name in white_listed_query_params):
                     query_param_values = [value.sql() for value in in_expression.expressions]
                     for param_value in query_param_values:
                         uri = append_to_uri(uri, param_name, param_value)
