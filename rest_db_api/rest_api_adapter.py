@@ -31,7 +31,7 @@ def get_session() -> requests_cache.CachedSession:
     return requests_cache.CachedSession(
         cache_name="rest_api_cache",
         backend="sqlite",
-        expire_after=180,
+        expire_after=5,
     )
 
 
@@ -223,12 +223,15 @@ class RestAdapter(Adapter):
         else:
             response = self._session.get(self.url, params=self.query_params, headers=self.headers)
 
+        is_response_cached: bool = True if response and getattr(response, 'from_cache', False) else False
+
         if response and response.ok:
             _logger.info(f"response received; uri : {self.url}; query_params : {self.query_params};"
-                         f" headers : {self.headers}; json : {self.body}")
+                         f" headers : {self.headers}; json : {self.body}; is_response_cached : {is_response_cached}")
         else:
             _logger.error(f"failed to fetch response; uri : {self.url}; query_params : {self.query_params};"
-                          f" headers : {self.headers}; json : {self.body}; response : {response}")
+                          f" headers : {self.headers}; json : {self.body}; is_response_cached : {is_response_cached};"
+                          f" response : {response}")
 
         payload = response.json()
         parser = JSONPath(self.fragment)
