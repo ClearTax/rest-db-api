@@ -91,6 +91,15 @@ def remove_invalid_clause(operation: str) -> str:
     return operation
 
 
+def sanitize_string(string: str) -> str:
+    if string.startswith("'") or string.endswith("'"):
+        return string.strip("'")
+    elif string.startswith('"') or string.endswith('"'):
+        return string.strip('"')
+
+    return string
+
+
 def append_to_uri(uri: str, name: str, value: str) -> str:
     if "?" not in uri:
         uri += "?"
@@ -103,14 +112,15 @@ def append_to_uri(uri: str, name: str, value: str) -> str:
         name = "QUERY_PARAM" + white_listed_query_params[name]
 
     if name.startswith("QUERY_PARAM"):
-        name = name.removeprefix("QUERY_PARAM").strip('"') + "="
+        name = name.removeprefix("QUERY_PARAM") + "="
     elif name.startswith("HEADER"):
-        name = "header=" + name.removeprefix("HEADER").strip('"') + ":"
+        name = "header=" + name.removeprefix("HEADER") + ":"
 
-    return uri + name + value.strip('"')
+    return uri + name + value
 
 
-def append_headers_and_query_params_to_uri(expression: Union[sqlglot.expressions.Expression, List], is_where_clause, uri) -> str:
+def append_headers_and_query_params_to_uri(expression: Union[sqlglot.expressions.Expression, List], is_where_clause,
+                                           uri) -> str:
     if expression:
         if isinstance(expression, list):
             for i in expression:
@@ -124,25 +134,27 @@ def append_headers_and_query_params_to_uri(expression: Union[sqlglot.expressions
         elif isinstance(expression, sqlglot.expressions.EQ):
             eq_expression: sqlglot.expressions.EQ = expression
             if is_where_clause:
-                param_name = eq_expression.left.sql().strip('"')
+                param_name = sanitize_string(eq_expression.left.sql())
                 if (param_name.startswith("QUERY_PARAM") or param_name.startswith("HEADER")
                         or param_name in white_listed_header_params or param_name in white_listed_query_params):
-                    param_value = eq_expression.right.sql()
+                    param_value = sanitize_string(eq_expression.right.sql())
                     uri = append_to_uri(uri, param_name, param_value)
                     eq_expression.pop()
         elif isinstance(expression, sqlglot.expressions.In):
             in_expression: sqlglot.expressions.In = expression
             if is_where_clause:
-                param_name = in_expression.this.sql().strip('"')
+                param_name = sanitize_string(in_expression.this.sql())
                 if (param_name.startswith("QUERY_PARAM") or param_name.startswith("HEADER")
                         or param_name in white_listed_header_params or param_name in white_listed_query_params):
-                    query_param_values = [value.sql() for value in in_expression.expressions]
+                    query_param_values = [sanitize_string(value.sql()) for value in in_expression.expressions]
                     for param_value in query_param_values:
                         uri = append_to_uri(uri, param_name, param_value)
                     expression.pop()
         elif isinstance(expression, sqlglot.expressions.Expression):
             for key, value in expression.args.items():
-                uri = append_headers_and_query_params_to_uri(value, is_where_clause or isinstance(expression, sqlglot.expressions.Where), uri)
+                uri = append_headers_and_query_params_to_uri(value, is_where_clause or isinstance(expression,
+                                                                                                  sqlglot.expressions.Where),
+                                                             uri)
 
     return uri.strip()
 
