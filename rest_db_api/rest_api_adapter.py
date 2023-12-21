@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import urllib
-from typing import Optional, Any, Tuple, Dict, List, Iterator
+from typing import Optional, Any, Tuple, Dict, List, Iterator, Set
 
 import requests_cache
 from jsonpath import JSONPath
@@ -31,7 +31,7 @@ def get_session() -> requests_cache.CachedSession:
     return requests_cache.CachedSession(
         cache_name="rest_api_cache",
         backend="sqlite",
-        expire_after=180,
+        expire_after=5,
     )
 
 
@@ -94,13 +94,14 @@ class HttpHeader:
 
     @classmethod
     def load_multi_valued_headers(cls, headers: List['HttpHeader']) -> Dict[str, str]:
-        header_grouping: Dict[str, List[str]] = {}
+        header_grouping: Dict[str, Set[str]] = {}
         for header in headers:
-            if header.get_key() not in header_grouping:
-                header_grouping[header.get_key()] = []
-            header_grouping[header.get_key()].append(header.get_value())
+            if header and header.get_key() and header.get_value():
+                if header.get_key() not in header_grouping:
+                    header_grouping[header.get_key()]: Set[str] = set()
+                header_grouping[header.get_key()].add(header.get_value())
 
-        return {key: ",".join(value) for key, value in header_grouping.items()}
+        return {key: ",".join(sorted(value)) for key, value in header_grouping.items()}
 
 
 class RestAdapter(Adapter):
@@ -222,12 +223,15 @@ class RestAdapter(Adapter):
         else:
             response = self._session.get(self.url, params=self.query_params, headers=self.headers)
 
+        is_response_cached: bool = True if response and getattr(response, 'from_cache', False) else False
+
         if response and response.ok:
             _logger.info(f"response received; uri : {self.url}; query_params : {self.query_params};"
-                         f" headers : {self.headers}; json : {self.body}")
+                         f" headers : {self.headers}; json : {self.body}; is_response_cached : {is_response_cached}")
         else:
             _logger.error(f"failed to fetch response; uri : {self.url}; query_params : {self.query_params};"
-                          f" headers : {self.headers}; json : {self.body}; response : {response}")
+                          f" headers : {self.headers}; json : {self.body}; is_response_cached : {is_response_cached};"
+                          f" response : {response}")
 
         payload = response.json()
         parser = JSONPath(self.fragment)
