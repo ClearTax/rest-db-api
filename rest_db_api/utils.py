@@ -12,6 +12,7 @@ _logger = logging.getLogger(__name__)
 white_listed_header_params: dict[str, str] = {
     "org_id": "x-cleartax-orgunit",
     "node_ids": "x-clear-node-id",
+    "cookie": "cookie"
 }
 
 white_listed_query_params: dict[str, str] = {
