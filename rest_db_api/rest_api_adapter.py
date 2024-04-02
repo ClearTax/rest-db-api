@@ -153,7 +153,7 @@ class RestAdapter(Adapter):
             uri, operation = utils.parse_operation_and_uri(uri, operation)
         except Exception as exception:
             _logger.error(f"Exception occurred while parsing; uri : {uri}; operation : {operation}; "
-                          f"exception : {exception}")
+                          f"exception :", exc_info=exception, stack_info=True)
 
         return uri, operation
 
