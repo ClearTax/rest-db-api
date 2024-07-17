@@ -23,7 +23,7 @@ dependencies = [
     "shillelagh",
     "requests-cache",
     "jsonpath-python",
-    "sqlglot>=23.0.2, <24"
+    "sqlglot"
 ]
 
 [project.entry-points."shillelagh.adapter"]
