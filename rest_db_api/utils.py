@@ -128,7 +128,7 @@ def append_headers_and_query_params_to_uri(expression: Union[sqlglot.expressions
             for i in expression:
                 uri = append_headers_and_query_params_to_uri(i, is_where_clause, uri)
         elif isinstance(expression, sqlglot.expressions.And):
-            for key, value in expression.args.items():
+            for key, value in list(expression.args.items()):
                 uri = append_headers_and_query_params_to_uri(value, is_where_clause, uri)
 
             if not len(expression.args.items()):
@@ -153,7 +153,7 @@ def append_headers_and_query_params_to_uri(expression: Union[sqlglot.expressions
                         uri = append_to_uri(uri, param_name, param_value)
                     expression.pop()
         elif isinstance(expression, sqlglot.expressions.Expression):
-            for key, value in expression.args.items():
+            for key, value in list(expression.args.items()):
                 uri = append_headers_and_query_params_to_uri(value, is_where_clause or isinstance(expression,
                                                                                                   sqlglot.expressions.Where),
                                                              uri)
