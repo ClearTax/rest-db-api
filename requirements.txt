@@ -80,6 +80,7 @@ wcwidth==0.2.5
 webencodings==0.5.1
 wrapt==1.14.1
 yarl==1.8.1
+google==3.0.0
 
 # ClearTax Shillelagh clone
 git+https://github.com/ClearTax/shillelagh.git
